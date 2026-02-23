@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FreeWheeling.io</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="panel panel-left">
+        <h1>FreeWheeling.io</h1>
+        <p class="subhead">Classroom-friendly random picker</p>
+
+        <div class="quick-teams" aria-label="Quick team generator">
+          <label for="teamCountInput">Add number of teams</label>
+          <div class="row row-tight row-split cta-row">
+            <input id="teamCountInput" type="number" min="2" max="100" value="4" />
+            <button id="generateTeamsBtn" class="btn btn-arrow" aria-label="Generate teams">
+              <span aria-hidden="true">➜</span>
+            </button>
+          </div>
+        </div>
+
+        <label for="entriesInput" class="entries-label">Or add entries (one per line)</label>
+        <textarea id="entriesInput" rows="10" placeholder="Alice&#10;Bob&#10;Charlie"></textarea>
+
+        <div class="row row-split row-tight cta-row">
+          <button id="shuffleBtn" class="btn btn-secondary">Shuffle</button>
+          <button id="applyEntriesBtn" class="btn btn-arrow" aria-label="Use these entries">
+            <span aria-hidden="true">➜</span>
+          </button>
+        </div>
+
+        <div class="settings">
+          <h2>Spin Settings</h2>
+          <label for="winnerMode">Winner handling</label>
+          <select id="winnerMode">
+            <option value="remove">Auto-remove winner (default)</option>
+            <option value="keep">Keep winner in wheel</option>
+            <option value="no-repeat">No repeat until reset</option>
+          </select>
+
+          <label class="check">
+            <input type="checkbox" id="soundToggle" checked />
+            Enable sound effects
+          </label>
+          <div class="row">
+            <button id="resetWheelBtn" class="btn btn-danger">Reset Round</button>
+          </div>
+          <p id="statusMsg" class="status" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="panel panel-center">
+        <div class="wheel-wrap">
+          <div class="pointer" aria-hidden="true"></div>
+          <canvas id="wheelCanvas" width="520" height="520" aria-label="Spin wheel"></canvas>
+        </div>
+        <button id="spinBtn" class="btn btn-spin">SPIN</button>
+        <p id="explainabilityText" class="explainability"></p>
+      </section>
+
+      <section class="panel panel-right">
+        <h2>Result</h2>
+        <div id="winnerCard" class="winner-card">
+          <p class="winner-label">Latest Winner</p>
+          <p id="winnerName" class="winner-name">-</p>
+        </div>
+
+        <h2>Spin History</h2>
+        <ul id="historyList" class="history"></ul>
+      </section>
+    </main>
+
+    <div id="winnerOverlay" class="winner-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="winnerOverlayName">
+      <div class="winner-modal">
+        <p class="winner-modal-label">Winner</p>
+        <p id="winnerOverlayName" class="winner-modal-name">-</p>
+        <button id="closeWinnerOverlayBtn" class="btn">Continue</button>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
