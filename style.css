@@ -22,11 +22,39 @@ body {
 }
 
 .app {
-  min-height: 100vh;
+  min-height: calc(100vh - 88px);
   display: grid;
   grid-template-columns: minmax(260px, 320px) 1fr minmax(220px, 280px);
   gap: 16px;
   padding: 16px;
+}
+
+.app-footer {
+  padding: 0 16px 20px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.footer-line {
+  margin: 4px 0;
+  font-size: 0.9rem;
+}
+
+.footer-line a {
+  color: inherit;
+  text-decoration-color: rgba(31, 42, 68, 0.24);
+}
+
+.footer-note {
+  font-size: 0.82rem;
+}
+
+.footer-note code {
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 0.95em;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 1px 5px;
+  border-radius: 999px;
 }
 
 .panel {
@@ -193,10 +221,44 @@ textarea {
   justify-content: center;
 }
 
+.mode-toggle {
+  display: inline-flex;
+  gap: 6px;
+  padding: 6px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #f6f9ff;
+}
+
+.mode-toggle-btn {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 16px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mode-toggle-btn.is-active {
+  background: linear-gradient(90deg, rgba(31, 143, 255, 0.14), rgba(48, 196, 141, 0.18));
+  color: var(--text);
+}
+
+.selection-stage {
+  width: min(84vw, 580px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .wheel-wrap {
   position: relative;
-  width: min(84vw, 580px);
+  width: 100%;
   aspect-ratio: 1 / 1;
+  cursor: pointer;
 }
 
 #wheelCanvas {
@@ -221,6 +283,134 @@ textarea {
   z-index: 5;
 }
 
+.card-stage {
+  aspect-ratio: 1 / 1;
+  cursor: pointer;
+}
+
+.card-stack {
+  position: relative;
+  width: min(76%, 400px);
+  height: min(54%, 280px);
+  min-height: 250px;
+  display: grid;
+  place-items: center;
+  perspective: 1200px;
+}
+
+.shuffle-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 24px;
+  border: 1px solid rgba(217, 225, 242, 0.9);
+  background: linear-gradient(145deg, #ffffff, #eef6ff);
+  box-shadow: 0 18px 38px rgba(31, 42, 68, 0.12);
+}
+
+.shuffle-card-back {
+  transform: translate(-18px, 14px) rotate(-7deg);
+  background: linear-gradient(145deg, #edf5ff, #f9fbff);
+  opacity: 0.75;
+}
+
+.shuffle-card-mid {
+  transform: translate(16px, 8px) rotate(6deg);
+  background: linear-gradient(145deg, #f6fbff, #eef7f4);
+  opacity: 0.88;
+}
+
+.shuffle-card-front {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.shuffle-card-front::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(31, 143, 255, 0.12), transparent 38%),
+    radial-gradient(circle at 85% 20%, rgba(48, 196, 141, 0.12), transparent 34%);
+}
+
+.shuffle-card-label,
+.shuffle-card-name {
+  position: relative;
+  z-index: 1;
+}
+
+.shuffle-card-label {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.shuffle-card-name {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.card-stack.is-shuffling .shuffle-card-back {
+  animation: card-back-sway 360ms ease-in-out infinite alternate;
+}
+
+.card-stack.is-shuffling .shuffle-card-mid {
+  animation: card-mid-sway 290ms ease-in-out infinite alternate;
+}
+
+.card-stack.is-shuffling .shuffle-card-front {
+  animation: card-front-sway 180ms ease-in-out infinite alternate;
+}
+
+.card-stack.is-revealed .shuffle-card-front {
+  animation: card-reveal-pop 280ms ease-out;
+}
+
+@keyframes card-back-sway {
+  0% {
+    transform: translate(-22px, 18px) rotate(-8deg);
+  }
+  100% {
+    transform: translate(-12px, 8px) rotate(-3deg);
+  }
+}
+
+@keyframes card-mid-sway {
+  0% {
+    transform: translate(18px, 10px) rotate(8deg);
+  }
+  100% {
+    transform: translate(8px, 2px) rotate(2deg);
+  }
+}
+
+@keyframes card-front-sway {
+  0% {
+    transform: translateY(-6px) rotate(-2deg);
+  }
+  100% {
+    transform: translateY(4px) rotate(2deg);
+  }
+}
+
+@keyframes card-reveal-pop {
+  0% {
+    transform: scale(0.96);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .explainability {
   margin-top: 10px;
   color: var(--muted);
@@ -243,6 +433,31 @@ textarea {
 .winner-name {
   margin: 6px 0 0;
   font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.winner-meta {
+  margin-top: 12px;
+}
+
+.stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.stat-label {
+  font-weight: 600;
+}
+
+.stat-value {
+  color: var(--text);
   font-weight: 800;
 }
 
@@ -317,6 +532,11 @@ textarea {
 
   .panel-center {
     order: -1;
+  }
+
+  .card-stack {
+    width: min(86%, 380px);
+    min-height: 230px;
   }
 
   .history {

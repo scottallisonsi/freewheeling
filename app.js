@@ -16,11 +16,15 @@ const state = {
   baseEntries: [],
   eliminated: new Set(),
   history: [],
+  totalPicks: 0,
   pendingWinner: null,
+  selectionMode: "wheel",
   winnerMode: "remove",
   soundOn: true,
+  audioReady: false,
   isSpinning: false,
   rotation: 0,
+  cardPreviewName: "-",
 };
 
 const elements = {
@@ -33,8 +37,15 @@ const elements = {
   soundToggle: document.getElementById("soundToggle"),
   resetWheelBtn: document.getElementById("resetWheelBtn"),
   statusMsg: document.getElementById("statusMsg"),
+  wheelModeBtn: document.getElementById("wheelModeBtn"),
+  cardModeBtn: document.getElementById("cardModeBtn"),
+  wheelStage: document.getElementById("wheelStage"),
+  cardStage: document.getElementById("cardStage"),
+  cardStack: document.getElementById("cardStack"),
+  cardStageName: document.getElementById("cardStageName"),
   spinBtn: document.getElementById("spinBtn"),
   winnerName: document.getElementById("winnerName"),
+  totalPicksValue: document.getElementById("totalPicksValue"),
   historyList: document.getElementById("historyList"),
   explainabilityText: document.getElementById("explainabilityText"),
   winnerOverlay: document.getElementById("winnerOverlay"),
@@ -80,6 +91,8 @@ function saveState() {
     entries: state.entries,
     baseEntries: state.baseEntries,
     history: state.history,
+    totalPicks: state.totalPicks,
+    selectionMode: state.selectionMode,
     winnerMode: state.winnerMode,
     soundOn: state.soundOn,
     eliminated: Array.from(state.eliminated),
@@ -92,6 +105,8 @@ function loadState() {
   if (fromUrl) {
     state.entries = fromUrl.entries;
     state.baseEntries = [...fromUrl.entries];
+    state.totalPicks = 0;
+    state.selectionMode = fromUrl.selectionMode || "wheel";
     state.winnerMode = fromUrl.winnerMode || "remove";
     state.history = [];
     state.eliminated.clear();
@@ -106,6 +121,8 @@ function loadState() {
       ? data.baseEntries.slice(0, 100)
       : [...state.entries];
     state.history = Array.isArray(data.history) ? data.history.slice(0, 100) : [];
+    state.totalPicks = Number.isFinite(data.totalPicks) ? Math.max(0, data.totalPicks) : 0;
+    state.selectionMode = data.selectionMode === "cards" ? "cards" : "wheel";
     state.winnerMode = data.winnerMode || "remove";
     state.soundOn = data.soundOn !== false;
     state.eliminated = new Set(Array.isArray(data.eliminated) ? data.eliminated : []);
@@ -124,6 +141,7 @@ function readShareData() {
     if (!Array.isArray(data.entries)) return null;
     return {
       entries: data.entries.map((v) => String(v)).slice(0, 100),
+      selectionMode: data.selectionMode === "cards" ? "cards" : "wheel",
       winnerMode: String(data.winnerMode || "remove"),
     };
   } catch (_) {
@@ -187,11 +205,29 @@ function drawWheel(entries) {
 
 function render() {
   const entries = visibleEntries();
-  drawWheel(entries);
+  const isWheelMode = state.selectionMode === "wheel";
+  elements.wheelStage.classList.toggle("hidden", !isWheelMode);
+  elements.cardStage.classList.toggle("hidden", isWheelMode);
+  elements.wheelModeBtn.classList.toggle("is-active", isWheelMode);
+  elements.cardModeBtn.classList.toggle("is-active", !isWheelMode);
+  elements.wheelModeBtn.setAttribute("aria-pressed", String(isWheelMode));
+  elements.cardModeBtn.setAttribute("aria-pressed", String(!isWheelMode));
+  elements.spinBtn.textContent = isWheelMode ? "SPIN" : "SHUFFLE";
+  if (isWheelMode) {
+    drawWheel(entries);
+  } else {
+    if (!entries.length) {
+      state.cardPreviewName = "Add entries";
+    } else if (!entries.includes(state.cardPreviewName)) {
+      state.cardPreviewName = entries[0];
+    }
+    elements.cardStageName.textContent = state.cardPreviewName;
+  }
   renderHistory();
   renderExplainability(entries);
   elements.spinBtn.disabled = state.isSpinning || entries.length < 2;
   elements.winnerName.textContent = state.history[0] || "-";
+  elements.totalPicksValue.textContent = String(state.totalPicks);
   elements.entriesInput.value = state.entries.join("\n");
   elements.winnerMode.value = state.winnerMode;
   elements.soundToggle.checked = state.soundOn;
@@ -208,11 +244,13 @@ function renderHistory() {
 
 function renderExplainability(entries) {
   if (!entries.length) {
-    elements.explainabilityText.textContent = "Add entries to begin. Each spin uses cryptographic random selection.";
+    elements.explainabilityText.textContent = "Add entries to begin. Each pick uses cryptographic random selection.";
     return;
   }
   const chance = (100 / entries.length).toFixed(2);
-  elements.explainabilityText.textContent = `Fairness: each active entry has equal chance (${chance}%, 1/${entries.length}) before spin.`;
+  const action = state.selectionMode === "cards" ? "shuffle" : "spin";
+  elements.explainabilityText.textContent =
+    `Fairness: each active entry has equal chance (${chance}%, 1/${entries.length}) before each ${action}.`;
 }
 
 function setStatus(msg) {
@@ -229,8 +267,12 @@ function getAudioContext() {
 function unlockAudio() {
   const audioContext = getAudioContext();
   if (audioContext.state !== "running") {
-    return audioContext.resume().then(() => true).catch(() => false);
+    return audioContext.resume().then(() => {
+      state.audioReady = true;
+      return true;
+    }).catch(() => false);
   }
+  state.audioReady = true;
   return Promise.resolve(true);
 }
 
@@ -253,6 +295,10 @@ function scheduleTone(audioContext, freq, durationMs, type, gainValue) {
 function playTone(freq, durationMs, type = "triangle", gainValue = 0.03) {
   if (!state.soundOn) return;
   const audioContext = getAudioContext();
+  if (state.audioReady && audioContext.state === "running") {
+    scheduleTone(audioContext, freq, durationMs, type, gainValue);
+    return;
+  }
   unlockAudio().then((ok) => {
     if (!ok) return;
     scheduleTone(audioContext, freq, durationMs, type, gainValue);
@@ -261,6 +307,11 @@ function playTone(freq, durationMs, type = "triangle", gainValue = 0.03) {
 
 function playSpinStartSound() {
   playTone(190, 90, "sine", 0.03);
+}
+
+function playCardShuffleStartSound() {
+  playTone(240, 80, "triangle", 0.022);
+  setTimeout(() => playTone(320, 70, "sine", 0.018), 65);
 }
 
 function playWinnerRevealSound() {
@@ -290,6 +341,21 @@ function hideWinnerOverlay() {
   elements.winnerOverlay.classList.add("hidden");
 }
 
+function finalizeSelection(winner) {
+  state.isSpinning = false;
+  state.totalPicks += 1;
+  state.history.unshift(winner);
+  state.history = state.history.slice(0, 30);
+  state.pendingWinner = winner;
+  setStatus(`Selected: ${winner}`);
+  playWinnerRevealSound();
+  showWinnerOverlay(winner);
+  renderHistory();
+  renderExplainability(visibleEntries());
+  elements.winnerName.textContent = winner;
+  saveState();
+}
+
 function animateSpin(targetRotation, entriesSnapshot, winnerIndex) {
   state.isSpinning = true;
   const start = performance.now();
@@ -316,18 +382,61 @@ function animateSpin(targetRotation, entriesSnapshot, winnerIndex) {
       requestAnimationFrame(frame);
       return;
     }
-    state.isSpinning = false;
+    finalizeSelection(entriesSnapshot[winnerIndex]);
+  }
+
+  requestAnimationFrame(frame);
+}
+
+function animateCardShuffle(entriesSnapshot, winnerIndex) {
+  state.isSpinning = true;
+  state.cardPreviewName = entriesSnapshot[secureRandomInt(entriesSnapshot.length)] || entriesSnapshot[0];
+  elements.cardStageName.textContent = state.cardPreviewName;
+  elements.cardStack.classList.remove("is-revealed");
+  elements.cardStack.classList.add("is-shuffling");
+
+  const start = performance.now();
+  const duration = 2250;
+  let nextRevealAt = start;
+  let lastShown = state.cardPreviewName;
+
+  function frame(now) {
+    const t = Math.min(1, (now - start) / duration);
+
+    if (now >= nextRevealAt && t < 1) {
+      let candidate = entriesSnapshot[secureRandomInt(entriesSnapshot.length)];
+      if (entriesSnapshot.length > 1) {
+        let attempts = 0;
+        while (candidate === lastShown && attempts < 5) {
+          candidate = entriesSnapshot[secureRandomInt(entriesSnapshot.length)];
+          attempts += 1;
+        }
+      }
+      state.cardPreviewName = candidate;
+      elements.cardStageName.textContent = candidate;
+      lastShown = candidate;
+
+      if (state.soundOn) {
+        const tickFreq = 520 - 110 * t;
+        const tickGain = 0.018 + 0.008 * (1 - t);
+        playTone(tickFreq, 24, "triangle", tickGain);
+      }
+
+      nextRevealAt = now + 42 + 180 * Math.pow(t, 1.8);
+    }
+
+    if (t < 1) {
+      requestAnimationFrame(frame);
+      return;
+    }
+
     const winner = entriesSnapshot[winnerIndex];
-    state.history.unshift(winner);
-    state.history = state.history.slice(0, 30);
-    state.pendingWinner = winner;
-    setStatus(`Winner: ${winner}`);
-    playWinnerRevealSound();
-    showWinnerOverlay(winner);
-    renderHistory();
-    renderExplainability(visibleEntries());
-    elements.winnerName.textContent = winner;
-    saveState();
+    state.cardPreviewName = winner;
+    elements.cardStageName.textContent = winner;
+    elements.cardStack.classList.remove("is-shuffling");
+    elements.cardStack.classList.add("is-revealed");
+    finalizeSelection(winner);
+    setTimeout(() => elements.cardStack.classList.remove("is-revealed"), 320);
   }
 
   requestAnimationFrame(frame);
@@ -350,6 +459,11 @@ function spin() {
   if (!elements.winnerOverlay.classList.contains("hidden")) return;
   if (entries.length < 2 || state.isSpinning) return;
   const winnerIndex = secureRandomInt(entries.length);
+  if (state.selectionMode === "cards") {
+    playCardShuffleStartSound();
+    animateCardShuffle(entries, winnerIndex);
+    return;
+  }
   const segment = (Math.PI * 2) / entries.length;
   const pointerAngle = -Math.PI / 2;
   const winnerCenterAngle = -Math.PI / 2 + winnerIndex * segment + segment / 2;
@@ -363,11 +477,19 @@ function spin() {
   animateSpin(targetRotation, entries, winnerIndex);
 }
 
+function setSelectionMode(mode) {
+  if (state.isSpinning) return;
+  state.selectionMode = mode === "cards" ? "cards" : "wheel";
+  render();
+  saveState();
+}
+
 function resetWinnerState() {
   state.entries = [...state.baseEntries];
   state.eliminated.clear();
   state.pendingWinner = null;
   state.history = [];
+  state.cardPreviewName = state.entries[0] || "-";
   setStatus("Winner state reset.");
   saveState();
   render();
@@ -380,6 +502,7 @@ function applyEntriesFromInput() {
   state.eliminated.clear();
   state.pendingWinner = null;
   state.history = [];
+  state.cardPreviewName = entries[0] || "-";
   setStatus(`Applied ${entries.length} entries.`);
   saveState();
   render();
@@ -397,6 +520,7 @@ function generateTeams() {
   state.eliminated.clear();
   state.pendingWinner = null;
   state.history = [];
+  state.cardPreviewName = state.entries[0] || "-";
   elements.entriesInput.value = state.entries.join("\n");
   setStatus(`Generated ${safeCount} teams.`);
   saveState();
@@ -407,18 +531,26 @@ function setupEvents() {
   const primeAudio = () => {
     unlockAudio().catch(() => {});
   };
-  document.addEventListener("pointerdown", primeAudio, { once: true });
-  document.addEventListener("keydown", primeAudio, { once: true });
+  document.addEventListener("pointerdown", primeAudio, { passive: true });
+  document.addEventListener("keydown", primeAudio);
+  window.addEventListener("focus", primeAudio);
+  window.addEventListener("pageshow", primeAudio);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") primeAudio();
+  });
 
   elements.applyEntriesBtn.addEventListener("click", applyEntriesFromInput);
   elements.generateTeamsBtn.addEventListener("click", generateTeams);
   elements.shuffleBtn.addEventListener("click", () => {
     shuffleEntries();
     state.baseEntries = [...state.entries];
+    state.cardPreviewName = state.entries[0] || "-";
     saveState();
     render();
     setStatus("Entries shuffled.");
   });
+  elements.wheelModeBtn.addEventListener("click", () => setSelectionMode("wheel"));
+  elements.cardModeBtn.addEventListener("click", () => setSelectionMode("cards"));
   elements.winnerMode.addEventListener("change", (event) => {
     state.winnerMode = event.target.value;
     if (state.winnerMode !== "no-repeat") state.eliminated.clear();
@@ -432,6 +564,7 @@ function setupEvents() {
   elements.resetWheelBtn.addEventListener("click", resetWinnerState);
   elements.spinBtn.addEventListener("click", spin);
   elements.canvas.addEventListener("click", spin);
+  elements.cardStage.addEventListener("click", spin);
   elements.closeWinnerOverlayBtn.addEventListener("click", hideWinnerOverlay);
   elements.winnerOverlay.addEventListener("click", (event) => {
     if (event.target === elements.winnerOverlay) hideWinnerOverlay();
@@ -444,12 +577,13 @@ function setupEvents() {
 function bootstrap() {
   loadState();
   if (!state.entries.length) {
-    state.entries = ["Alice", "Bob", "Charlie", "Diana"];
+    state.entries = ["Peter Parker", "Tony Stark", "Thor Odinson", "Natasha Romanoff", "Bruce Banner"];
     state.baseEntries = [...state.entries];
   }
   if (!state.baseEntries.length) {
     state.baseEntries = [...state.entries];
   }
+  state.cardPreviewName = state.entries[0] || "-";
   elements.entriesInput.value = state.entries.join("\n");
   setupEvents();
   render();

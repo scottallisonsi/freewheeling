@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FreeWheeling.io</title>
     <link rel="stylesheet" href="style.css" />
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
   </head>
   <body>
     <main class="app">
@@ -15,7 +19,7 @@
         <div class="quick-teams" aria-label="Quick team generator">
           <label for="teamCountInput">Add number of teams</label>
           <div class="row row-tight row-split cta-row">
-            <input id="teamCountInput" type="number" min="2" max="100" value="4" />
+            <input id="teamCountInput" type="number" min="2" max="100" value="5" />
             <button id="generateTeamsBtn" class="btn btn-arrow" aria-label="Generate teams">
               <span aria-hidden="true">➜</span>
             </button>
@@ -33,7 +37,7 @@
         </div>
 
         <div class="settings">
-          <h2>Spin Settings</h2>
+          <h2>Pick Settings</h2>
           <label for="winnerMode">Winner handling</label>
           <select id="winnerMode">
             <option value="remove">Auto-remove winner (default)</option>
@@ -53,10 +57,29 @@
       </section>
 
       <section class="panel panel-center">
-        <div class="wheel-wrap">
-          <div class="pointer" aria-hidden="true"></div>
-          <canvas id="wheelCanvas" width="520" height="520" aria-label="Spin wheel"></canvas>
+        <div class="mode-toggle" role="tablist" aria-label="Pick mode">
+          <button id="wheelModeBtn" class="mode-toggle-btn is-active" type="button" aria-pressed="true">Wheel</button>
+          <button id="cardModeBtn" class="mode-toggle-btn" type="button" aria-pressed="false">Cards</button>
         </div>
+
+        <div id="wheelStage" class="selection-stage">
+          <div class="wheel-wrap">
+            <div class="pointer" aria-hidden="true"></div>
+            <canvas id="wheelCanvas" width="520" height="520" aria-label="Spin wheel"></canvas>
+          </div>
+        </div>
+
+        <div id="cardStage" class="selection-stage card-stage hidden" aria-label="Shuffle cards">
+          <div id="cardStack" class="card-stack">
+            <div class="shuffle-card shuffle-card-back" aria-hidden="true"></div>
+            <div class="shuffle-card shuffle-card-mid" aria-hidden="true"></div>
+            <div class="shuffle-card shuffle-card-front">
+              <p class="shuffle-card-label">Current Pick</p>
+              <p id="cardStageName" class="shuffle-card-name">-</p>
+            </div>
+          </div>
+        </div>
+
         <button id="spinBtn" class="btn btn-spin">SPIN</button>
         <p id="explainabilityText" class="explainability"></p>
       </section>
@@ -66,12 +89,27 @@
         <div id="winnerCard" class="winner-card">
           <p class="winner-label">Latest Winner</p>
           <p id="winnerName" class="winner-name">-</p>
+          <div class="winner-meta">
+            <span class="stat-pill">
+              <span class="stat-label">Total picks</span>
+              <span id="totalPicksValue" class="stat-value">0</span>
+            </span>
+          </div>
         </div>
 
         <h2>Spin History</h2>
         <ul id="historyList" class="history"></ul>
       </section>
     </main>
+
+    <footer class="app-footer">
+      <p class="footer-line">
+        <a href="https://scottallisonsi.github.io" target="_blank" rel="noreferrer">2026 Scott Si</a>
+      </p>
+      <p class="footer-line footer-note">
+        Randomness is ensured by the browser&apos;s <code>crypto.getRandomValues()</code> API, so each active entry has an equal chance before each pick.
+      </p>
+    </footer>
 
     <div id="winnerOverlay" class="winner-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="winnerOverlayName">
       <div class="winner-modal">
