@@ -62,7 +62,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 18px;
   box-shadow: var(--shadow);
-  padding: 16px;
+  padding: 18px;
 }
 
 h1,
@@ -79,8 +79,9 @@ h2 {
 }
 
 .subhead {
-  margin: 0 0 12px;
+  margin: 0 0 16px;
   color: var(--muted);
+  line-height: 1.4;
 }
 
 label {
@@ -121,10 +122,10 @@ textarea {
 }
 
 .quick-teams {
-  margin-top: 10px;
-  padding: 12px 0;
+  margin-top: 12px;
+  padding: 14px 0;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: #f9fbff;
 }
 
@@ -144,7 +145,7 @@ textarea {
 }
 
 .entries-label {
-  margin-top: 20px;
+  margin-top: 22px;
 }
 
 .btn {
@@ -169,8 +170,10 @@ textarea {
 }
 
 .btn-danger {
-  background: var(--danger);
-  color: #fff;
+  background: #fff4f4;
+  color: #a04c4c;
+  border: 1px solid rgba(201, 72, 72, 0.16);
+  box-shadow: none;
 }
 
 .btn-arrow {
@@ -196,8 +199,8 @@ textarea {
 }
 
 .settings {
-  margin-top: 14px;
-  padding-top: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
   border-top: 1px solid var(--border);
 }
 
@@ -211,7 +214,9 @@ textarea {
 
 .status {
   min-height: 1.25rem;
+  margin-top: 8px;
   color: var(--muted);
+  line-height: 1.4;
 }
 
 .panel-center {
@@ -338,21 +343,14 @@ textarea {
     radial-gradient(circle at 85% 20%, rgba(48, 196, 141, 0.12), transparent 34%);
 }
 
-.shuffle-card-label,
 .shuffle-card-name {
   position: relative;
   z-index: 1;
 }
 
-.shuffle-card-label {
-  margin: 0 0 10px;
-  font-size: 0.95rem;
-  color: var(--muted);
-}
-
 .shuffle-card-name {
   margin: 0;
-  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-size: clamp(2.1rem, 4.2vw, 3rem);
   line-height: 1.05;
   font-weight: 900;
   letter-spacing: -0.03em;
@@ -420,8 +418,9 @@ textarea {
 .winner-card {
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 12px;
+  padding: 14px;
   background: #f7fbff;
+  margin-bottom: 20px;
 }
 
 .winner-label {
@@ -464,13 +463,21 @@ textarea {
 .history {
   list-style: none;
   padding-left: 0;
-  margin: 8px 0 0;
+  margin: 0;
   max-height: 60vh;
   overflow: auto;
 }
 
 .history li {
   margin-bottom: 6px;
+}
+
+.panel-right h2:first-of-type {
+  margin-bottom: 10px;
+}
+
+.panel-right h2:last-of-type {
+  margin-bottom: 12px;
 }
 
 .hidden {

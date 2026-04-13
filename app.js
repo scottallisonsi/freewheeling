@@ -56,6 +56,22 @@ const elements = {
 
 const ctx = elements.canvas.getContext("2d");
 
+function resizeCanvasToDisplaySize() {
+  const rect = elements.canvas.getBoundingClientRect();
+  if (!rect.width || !rect.height) return;
+
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const displayWidth = Math.round(rect.width * dpr);
+  const displayHeight = Math.round(rect.height * dpr);
+
+  if (elements.canvas.width !== displayWidth || elements.canvas.height !== displayHeight) {
+    elements.canvas.width = displayWidth;
+    elements.canvas.height = displayHeight;
+  }
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
 function getCleanEntries(text) {
   return text
     .split("\n")
@@ -150,7 +166,8 @@ function readShareData() {
 }
 
 function drawWheel(entries) {
-  const { width, height } = elements.canvas;
+  resizeCanvasToDisplaySize();
+  const { width, height } = elements.canvas.getBoundingClientRect();
   const cx = width / 2;
   const cy = height / 2;
   const radius = Math.min(cx, cy) - 10;
@@ -547,7 +564,7 @@ function setupEvents() {
     state.cardPreviewName = state.entries[0] || "-";
     saveState();
     render();
-    setStatus("Entries shuffled.");
+    setStatus("Entries reordered.");
   });
   elements.wheelModeBtn.addEventListener("click", () => setSelectionMode("wheel"));
   elements.cardModeBtn.addEventListener("click", () => setSelectionMode("cards"));
@@ -572,12 +589,13 @@ function setupEvents() {
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") hideWinnerOverlay();
   });
+  window.addEventListener("resize", render);
 }
 
 function bootstrap() {
   loadState();
   if (!state.entries.length) {
-    state.entries = ["Peter Parker", "Tony Stark", "Thor Odinson", "Natasha Romanoff", "Bruce Banner"];
+    state.entries = ["Peter Parker", "Bruce Banner", "Stephen Strange", "Tony Stark", "Natasha Romanoff"];
     state.baseEntries = [...state.entries];
   }
   if (!state.baseEntries.length) {
